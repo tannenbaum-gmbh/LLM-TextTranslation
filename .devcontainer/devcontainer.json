@@ -1,0 +1,22 @@
+{
+  "name": "LLM Text Translation",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest",
+      "installBicep": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-azuretools.vscode-bicep",
+        "ms-vscode.azure-account",
+        "ms-azuretools.vscode-azureresourcegroups"
+      ]
+    }
+  },
+  "postCreateCommand": "dotnet restore LLM-TextTranslation.sln && az bicep version",
+  "remoteUser": "vscode"
+}
