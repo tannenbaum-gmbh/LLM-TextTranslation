@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
-@description('Azure region for all resources. Defaults to the resource group location.')
-param location string = resourceGroup().location
+@description('Azure region for all resources.')
+param location string = 'swedencentral'
 
 @description('Base prefix used to generate globally unique resource names.')
 param namePrefix string = 'llmtrans${uniqueString(resourceGroup().id)}'
@@ -32,13 +32,13 @@ param openAiSkuName string = 'S0'
 param deployOpenAiModel bool = true
 
 @description('Azure OpenAI deployment name used by the sample scripts.')
-param openAiDeploymentName string = 'gpt-4o-mini'
+param openAiDeploymentName string = 'gpt-5.1'
 
 @description('Azure OpenAI model name to deploy.')
-param openAiModelName string = 'gpt-4o-mini'
+param openAiModelName string = 'gpt-5.1'
 
 @description('Azure OpenAI model version to deploy.')
-param openAiModelVersion string = '2024-07-18'
+param openAiModelVersion string = '2025-11-13'
 
 var translatorSubdomain = toLower(replace(translatorName, '_', '-'))
 var openAiSubdomain = toLower(replace(openAiName, '_', '-'))
@@ -73,8 +73,8 @@ resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023
   parent: openAi
   name: openAiDeploymentName
   sku: {
-    name: 'Standard'
-    capacity: 10
+    name: 'GlobalStandard'
+    capacity: 1
   }
   properties: {
     model: {
@@ -86,7 +86,7 @@ resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023
 }
 
 output translatorName string = translator.name
-output translatorEndpoint string = translator.properties.endpoint
+output translatorEndpoint string = 'https://${translatorSubdomain}.cognitiveservices.azure.com'
 output translatorRegion string = location
 output translatorResourceId string = translator.id
 output openAiName string = openAi.name
