@@ -1,40 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${AZURE_OPENAI_ENDPOINT:?Set AZURE_OPENAI_ENDPOINT to your Azure OpenAI endpoint.}"
-: "${AZURE_OPENAI_KEY:?Set AZURE_OPENAI_KEY to an Azure OpenAI resource key.}"
-: "${AZURE_OPENAI_DEPLOYMENT:?Set AZURE_OPENAI_DEPLOYMENT to the chat model deployment name.}"
-: "${AZURE_OPENAI_API_VERSION:=2024-10-21}"
-: "${TARGET_LANGUAGE:=German}"
-: "${TEXT:=Hello from Azure OpenAI translation.}"
+: "${TRANSLATOR_ENDPOINT:=https://api.cognitive.microsofttranslator.com}"
+: "${TRANSLATOR_KEY:?Set TRANSLATOR_KEY to a Translator resource key.}"
+: "${TRANSLATOR_REGION:?Set TRANSLATOR_REGION to the Translator resource region, for example westeurope.}"
+: "${TRANSLATOR_DEPLOYMENT_NAME:=gpt-4o-mini}"
+: "${TARGET_LANGUAGE:=de}"
+: "${TEXT:=Hello from Azure AI Translator LLM translation.}"
+: "${SOURCE_LANGUAGE:=}"
 
-endpoint="${AZURE_OPENAI_ENDPOINT%/}"
-url="${endpoint}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}"
+endpoint="${TRANSLATOR_ENDPOINT%/}"
+url="${endpoint}/translate?api-version=3.0&to=${TARGET_LANGUAGE}&category=${TRANSLATOR_DEPLOYMENT_NAME}"
 
-body=$(TEXT="${TEXT}" TARGET_LANGUAGE="${TARGET_LANGUAGE}" python3 - <<'PY'
+if [[ -n "${SOURCE_LANGUAGE}" ]]; then
+  url="${url}&from=${SOURCE_LANGUAGE}"
+fi
+
+body=$(TEXT="${TEXT}" python3 - <<'PY'
 import json
 import os
-print(json.dumps({
-    "messages": [
-        {
-            "role": "system",
-            "content": "Translate the user's text accurately. Return only the translation."
-        },
-        {
-            "role": "user",
-            "content": f"Translate to {os.environ['TARGET_LANGUAGE']}: {os.environ['TEXT']}"
-        }
-    ],
-    "temperature": 0.2,
-    "max_tokens": 800
-}))
+print(json.dumps([{"Text": os.environ["TEXT"]}]))
 PY
 )
 
 curl --fail-with-body --silent --show-error \
   --request POST "${url}" \
-  --header "api-key: ${AZURE_OPENAI_KEY}" \
-  --header "Content-Type: application/json" \
+  --header "Ocp-Apim-Subscription-Key: ${TRANSLATOR_KEY}" \
+  --header "Ocp-Apim-Subscription-Region: ${TRANSLATOR_REGION}" \
+  --header "Content-Type: application/json; charset=UTF-8" \
   --data "${body}"
 
 echo
