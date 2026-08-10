@@ -21,10 +21,10 @@ The Bicep template in `infra/main.bicep` creates:
 az login
 az group create --name rg-llm-translation --location westeurope
 az deployment group create \
+  --name main \
   --resource-group rg-llm-translation \
   --template-file infra/main.bicep \
   --parameters namePrefix=myllmtrans deployOpenAiModel=true
-```
 
 Get keys for local samples without committing them:
 
