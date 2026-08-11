@@ -12,48 +12,9 @@ Open the repository in VS Code and choose **Reopen in Container**. The dev conta
 
 ## Deploy Azure resources
 
-Use one of the two complete deployment options below.
+Deploy the Foundry-integrated resource and model deployment.
 
-| Option | Template | What it creates | Endpoint used for translation |
-|---|---|---|---|
-| A: Split resources | `infra/main.bicep` | Text Translator + separate Azure OpenAI (+ optional model deployment) | Translator endpoint from Text Translator resource |
-| B: Foundry integrated | `infra/foundry-translator.bicep` | Single Azure AI Foundry (AIServices) resource + optional model deployment | Translator endpoint from the Foundry resource |
-
-### Option A: Split Translator + OpenAI resources
-
-This path is useful when you want explicit, separate Translator and OpenAI resources.
-
-```bash
-az login
-az group create --name rg-llm-translation --location swedencentral
-az deployment group create \
-  --name main \
-  --resource-group rg-llm-translation \
-  --template-file infra/main.bicep \
-  --parameters namePrefix=myllmtrans deployOpenAiModel=true
-```
-
-Assign your signed-in user the least-privilege role for translation:
-
-```bash
-TRANSLATOR_ID=$(az deployment group show -g rg-llm-translation -n main --query properties.outputs.translatorResourceId.value -o tsv)
-USER_ID=$(az ad signed-in-user show --query id -o tsv)
-az role assignment create \
-  --assignee-object-id "$USER_ID" \
-  --assignee-principal-type User \
-  --role "Cognitive Services User" \
-  --scope "$TRANSLATOR_ID"
-```
-
-Export the resource-specific endpoint. Role assignments can take several minutes
-to propagate.
-
-```bash
-export TRANSLATOR_ENDPOINT=$(az deployment group show -g rg-llm-translation -n main --query properties.outputs.translatorEndpoint.value -o tsv)
-export TRANSLATOR_DEPLOYMENT_NAME=$(az deployment group show -g rg-llm-translation -n main --query properties.outputs.openAiDeploymentName.value -o tsv)
-```
-
-### Option B: Foundry integrated resource + model deployment
+### Foundry integrated resource + model deployment
 
 This path avoids split, unrelated endpoints by using a single Foundry (AIServices)
 resource for both translation endpoint and model deployment.
@@ -76,20 +37,19 @@ export TRANSLATOR_DEPLOYMENT_NAME=$(az deployment group show -g rg-llm-translati
 export TRANSLATOR_REGION=$(az deployment group show -g rg-llm-translation -n foundry --query properties.outputs.foundryRegion.value -o tsv)
 ```
 
-### RBAC for both deployment options
+### RBAC
 
 Use least privilege and assign roles at the resource scope you actually use.
 
 For calling translation (C# sample with `DefaultAzureCredential`):
 
-- `Cognitive Services User` on the Translator resource (Option A)
-- `Cognitive Services User` on the Foundry resource (Option B)
+- `Cognitive Services User` on the Foundry resource
 
 For creating or updating model deployments:
 
 - `Cognitive Services OpenAI Contributor` on the OpenAI/Foundry resource
 
-Example for Option B (Foundry resource scope):
+Example for the Foundry resource scope:
 
 ```bash
 FOUNDRY_ID=$(az deployment group show -g rg-llm-translation -n foundry --query properties.outputs.foundryResourceId.value -o tsv)
@@ -174,14 +134,7 @@ Fix checklist:
 1. Re-export values from your deployment outputs and avoid hardcoding
   `gpt-5.1` unless that exact deployment name exists.
 
-  Option A (`infra/main.bicep`):
-
-  ```bash
-  export TRANSLATOR_ENDPOINT=$(az deployment group show -g rg-llm-translation -n main --query properties.outputs.translatorEndpoint.value -o tsv)
-  export TRANSLATOR_DEPLOYMENT_NAME=$(az deployment group show -g rg-llm-translation -n main --query properties.outputs.openAiDeploymentName.value -o tsv)
-  ```
-
-  Option B (`infra/foundry-translator.bicep`):
+  Foundry deployment (`infra/foundry-translator.bicep`):
 
   ```bash
   export TRANSLATOR_ENDPOINT=$(az deployment group show -g rg-llm-translation -n foundry --query properties.outputs.foundryTranslatorEndpoint.value -o tsv)
@@ -189,8 +142,7 @@ Fix checklist:
   ```
 
 2. Confirm the Bicep deployment created the model deployment (or deploy one)
-  by setting `deployOpenAiModel=true` (Option A) or `deployModel=true`
-  (Option B).
+  by setting `deployModel=true`.
 
 3. Ensure you are using a Translator resource and model deployment that are
   connected in the same Foundry/OpenAI integration path. If you use separate,
